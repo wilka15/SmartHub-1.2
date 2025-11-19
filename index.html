@@ -1,6 +1,5 @@
 <script>
-const API_URL = "https://openai-proxy-ucgy.onrender.com/v1/chat/completions"; 
-let recognizing = false;
+const API_URL = "https://openai-proxy-ucgy.onrender.com/v1/responses";
 
 async function sendMessage() {
     const input = document.getElementById("userInput");
@@ -10,27 +9,36 @@ async function sendMessage() {
     addMessage(text, "user");
     input.value = "";
 
-    const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { 
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [{ role: "user", content: text }]
-        })
-    });
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "gpt-4o-mini",
+                input: text
+            })
+        });
 
-    const data = await response.json();
+        const data = await response.json();
+        console.log("AI response:", data);
 
-    if (!data.choices) {
-        addMessage("Ошибка: сервер не ответил корректно", "ai");
-        return;
+        if (!data.output) {
+            addMessage("Ошибка: неправильный ответ от сервера", "ai");
+            return;
+        }
+
+        // Правильный путь к тексту
+        const ai = data.output[0].content[0].text;
+
+        addMessage(ai, "ai");
+        speak(ai);
+
+    } catch (err) {
+        addMessage("Ошибка соединения с сервером", "ai");
+        console.error(err);
     }
-
-    const ai = data.choices[0].message.content;
-    addMessage(ai, "ai");
-    speak(ai);
 }
 
 function addMessage(msg, sender) {
@@ -59,4 +67,15 @@ function voiceInput() {
     };
 
     rec.onend = () => {
-        document.getElementById("micBtn").
+        document.getElementById("micBtn").style.background = "#ff3b3b";
+    };
+}
+
+function speak(text) {
+    const synth = window.speechSynthesis;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "ru-RU";
+    utter.rate = 1;
+    synth.speak(utter);
+}
+</script>
